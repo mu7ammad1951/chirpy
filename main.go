@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"sync/atomic"
@@ -35,32 +33,9 @@ func main() {
 	log.Fatal(server.ListenAndServe())
 }
 
-func handlerReadiness(w http.ResponseWriter, req *http.Request) {
-	// Add header
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, "200 OK\n")
-}
-
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		cfg.fileserverHits.Add(1)
 		next.ServeHTTP(w, req)
 	})
-}
-
-func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, req *http.Request) {
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-
-	io.WriteString(w, fmt.Sprintf("Hits: %v\n", cfg.fileserverHits.Load()))
-
-}
-
-func (cfg *apiConfig) handlerReset(w http.ResponseWriter, req *http.Request) {
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-
-	cfg.fileserverHits.Store(0)
 }
