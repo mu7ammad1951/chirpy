@@ -7,7 +7,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mu7ammad1951/chirpy-boot/internal/auth"
+	"github.com/mu7ammad1951/chirpy-boot/internal/database"
 )
+
+type UserRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
 
 type UserResponse struct {
 	ID        uuid.UUID `json:"id"`
@@ -18,9 +25,7 @@ type UserResponse struct {
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request) {
 	decoder := json.NewDecoder(req.Body)
-	reqJSON := struct {
-		Email string `json:"email"`
-	}{}
+	reqJSON := UserRequest{}
 
 	err := decoder.Decode(&reqJSON)
 	if err != nil {
@@ -28,8 +33,16 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 		respondWithError(w, http.StatusInternalServerError, "")
 		return
 	}
-
-	userData, err := cfg.dbQueries.CreateUser(req.Context(), reqJSON.Email)
+	hashedPassword, err := auth.HashPassword(reqJSON.Password)
+	if err != nil {
+		log.Printf("error hashing password")
+		respondWithError(w, http.StatusInternalServerError, "error creating user, try again")
+		return
+	}
+	userData, err := cfg.dbQueries.CreateUser(req.Context(), database.CreateUserParams{
+		Email:          reqJSON.Email,
+		HashedPassword: hashedPassword,
+	})
 	if err != nil {
 		log.Printf("error creating user: %s\n", err)
 		respondWithError(w, http.StatusInternalServerError, "")

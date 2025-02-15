@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/mu7ammad1951/chirpy-boot/internal/database"
 )
 
@@ -29,6 +30,30 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, req *http.Request)
 	}
 
 	respondWithJSON(w, http.StatusOK, formattedResponseData)
+}
+
+func (cfg *apiConfig) handlerGetChirpByID(w http.ResponseWriter, req *http.Request) {
+
+	chirpID, err := uuid.Parse(req.PathValue("chirpID"))
+	if err != nil {
+		log.Printf("error parsing chirpID: %v\n", err)
+		respondWithError(w, http.StatusBadRequest, "invalid chirp id")
+		return
+	}
+	responseData, err := cfg.dbQueries.GetChirpByID(req.Context(), chirpID)
+	if err != nil {
+		log.Printf("error retrieving chirp: %v\n", err)
+		respondWithError(w, http.StatusNotFound, "chirp not found")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, ChirpResponse{
+		ID:        responseData.ID,
+		CreatedAt: responseData.CreatedAt,
+		UpdatedAt: responseData.UpdatedAt,
+		Body:      responseData.Body,
+		UserID:    responseData.UserID,
+	})
+
 }
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, req *http.Request) {
