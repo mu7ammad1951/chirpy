@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -23,12 +24,14 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, req *http.Request) {
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, req *http.Request) {
 	if cfg.platform != "dev" {
+		log.Printf("invalid request: permission denied")
 		respondWithError(w, http.StatusForbidden, "Permission denied")
 		return
 	}
 
 	err := cfg.dbQueries.ResetUsers(req.Context())
 	if err != nil {
+		log.Printf("error resetting table: %v\n", err)
 		respondWithError(w, http.StatusInternalServerError, "")
 		return
 	}

@@ -13,7 +13,7 @@ type response_err struct {
 func respondWithError(w http.ResponseWriter, errorStatus int, errorString string) {
 	res, err := json.Marshal(response_err{Error: errorString})
 	if err != nil {
-		log.Printf("error marshalling: %v", err)
+		log.Printf("error marshalling 'error': %v", err)
 		w.WriteHeader(500)
 		return
 	}
@@ -24,6 +24,7 @@ func respondWithError(w http.ResponseWriter, errorStatus int, errorString string
 func respondWithJSON(w http.ResponseWriter, status int, v interface{}) {
 	res, err := json.Marshal(v)
 	if err != nil {
+		log.Printf("error marshalling response: %v\n", err)
 		respondWithError(w, http.StatusInternalServerError, "")
 		return
 	}
