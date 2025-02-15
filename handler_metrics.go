@@ -22,9 +22,19 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, req *http.Request) {
 }
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, req *http.Request) {
+	if cfg.platform != "dev" {
+		respondWithError(w, http.StatusForbidden, "Permission denied")
+		return
+	}
+
+	err := cfg.dbQueries.ResetUsers(req.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "")
+		return
+	}
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
-	w.Write([]byte("Hits reset to 0s"))
+	w.Write([]byte("State Reset"))
 	cfg.fileserverHits.Store(0)
 }
