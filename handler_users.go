@@ -9,6 +9,13 @@ import (
 	"github.com/google/uuid"
 )
 
+type UserResponse struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+}
+
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request) {
 	decoder := json.NewDecoder(req.Body)
 	reqJSON := struct {
@@ -29,12 +36,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
-	}{
+	respondWithJSON(w, http.StatusCreated, UserResponse{
 		ID:        userData.ID,
 		CreatedAt: userData.CreatedAt,
 		UpdatedAt: userData.UpdatedAt,
