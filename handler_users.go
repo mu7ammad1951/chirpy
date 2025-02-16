@@ -56,3 +56,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 		Email:     userData.Email,
 	})
 }
+
+func (cfg *apiConfig) handlerUserUpdate(w http.ResponseWriter, req *http.Request) {
+
+}

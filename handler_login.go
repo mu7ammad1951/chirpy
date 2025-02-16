@@ -4,22 +4,15 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/mu7ammad1951/chirpy-boot/internal/auth"
-)
-
-const (
-	maxExpirationInSeconds = 3600
+	"github.com/mu7ammad1951/chirpy-boot/internal/database"
 )
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 
 	decoder := json.NewDecoder(req.Body)
-	reqJSON := struct {
-		UserRequest
-		ExpiresIn *int `json:"expires_in_seconds"`
-	}{}
+	reqJSON := UserRequest{}
 	err := decoder.Decode(&reqJSON)
 	if err != nil {
 		log.Printf("error decoding request")
@@ -41,26 +34,29 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	expiresIn := maxExpirationInSeconds
-
-	if reqJSON.ExpiresIn != nil {
-		expiresIn = *reqJSON.ExpiresIn
-	}
-
-	if expiresIn > maxExpirationInSeconds {
-		expiresIn = maxExpirationInSeconds
-	}
-
-	tokenString, err := auth.MakeJWT(user.ID, cfg.secretString, time.Duration(expiresIn)*time.Second)
+	tokenString, err := auth.MakeJWT(user.ID, cfg.secretString)
 	if err != nil {
 		log.Printf("error creating JWT: %v", err)
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	refreshTokenString, err := auth.MakeRefreshToken()
+	if err != nil {
+		log.Printf("error creating Refresh Token: %v", err)
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	err = cfg.dbQueries.AddRefreshToken(req.Context(), database.AddRefreshTokenParams{
+		Token:  refreshTokenString,
+		UserID: user.ID,
+	})
+
 	respondWithJSON(w, http.StatusOK, struct {
 		UserResponse
-		Token string `json:"token"`
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}{
 		UserResponse: UserResponse{
 			ID:        user.ID,
@@ -68,7 +64,8 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
 		},
-		Token: tokenString,
+		Token:        tokenString,
+		RefreshToken: refreshTokenString,
 	})
 
 }
