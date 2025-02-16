@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -108,4 +109,69 @@ func TestValidateJWT(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetBearerToken(t *testing.T) {
+
+	cases := []struct {
+		name          string
+		headerValue   string
+		expected      string
+		wantErr       bool
+		missingHeader bool
+	}{
+		{
+			name:        "Valid Header",
+			headerValue: "Bearer TOKEN_STRING",
+			expected:    "TOKEN_STRING",
+			wantErr:     false,
+		},
+		{
+			name:        "Missing Token String",
+			headerValue: "Bearer",
+			expected:    "",
+			wantErr:     true,
+		},
+		{
+			name:        "Malformed Header Value",
+			headerValue: "BearerTOKEN_STRING",
+			expected:    "",
+			wantErr:     true,
+		},
+		{
+			name:        "Missing Header Value",
+			headerValue: "",
+			expected:    "",
+			wantErr:     true,
+		},
+		{
+			name:          "Missing Header",
+			headerValue:   "",
+			expected:      "",
+			wantErr:       true,
+			missingHeader: true,
+		},
+		{
+			name:        "Malformed Header Value II",
+			headerValue: "Bearer         ",
+			expected:    "",
+			wantErr:     true,
+		},
+	}
+
+	for _, tc := range cases {
+		dummyReq, err := http.NewRequest("POST", "http://localhost:8080/api/chirps", nil)
+		if err != nil {
+			t.Fatalf("error creating request: %v", err)
+		}
+		if !tc.missingHeader {
+			dummyReq.Header.Add("Authorization", tc.headerValue)
+		}
+
+		expect, err := GetBearerToken(dummyReq.Header)
+		if (err != nil) != tc.wantErr || expect != tc.expected {
+			t.Errorf("test: '%v' failed - expected: %v, got: %v, wantErr: %v, err: %v", tc.name, tc.expected, expect, tc.wantErr, err)
+		}
+	}
+
 }

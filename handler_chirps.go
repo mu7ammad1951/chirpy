@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/mu7ammad1951/chirpy-boot/internal/auth"
 	"github.com/mu7ammad1951/chirpy-boot/internal/database"
 )
 
@@ -73,9 +74,23 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
+	tokenString, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		log.Printf("error getting bearer token: %v\n", err)
+		respondWithError(w, http.StatusUnauthorized, "permission denied")
+		return
+	}
+
+	userID, err := auth.ValidateJWT(tokenString, cfg.secretString)
+	if err != nil {
+		log.Printf("error validating token: %v\n", err)
+		respondWithError(w, http.StatusUnauthorized, "permission denied")
+		return
+	}
+
 	res, err := cfg.dbQueries.CreateChirp(req.Context(), database.CreateChirpParams{
 		Body:   cleanedChirp,
-		UserID: chirpData.UserID,
+		UserID: userID,
 	})
 	if err != nil {
 		log.Printf("error creating chirp: %v\n", err)

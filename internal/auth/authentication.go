@@ -3,6 +3,8 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -11,6 +13,23 @@ import (
 )
 
 const costToHashPassword = 10
+
+func GetBearerToken(headers http.Header) (tokenString string, err error) {
+	authValue := headers.Get("Authorization")
+	if authValue == "" {
+		return "", errors.New("missing header")
+	}
+
+	authTokenString, found := strings.CutPrefix(authValue, "Bearer ")
+	if !found {
+		return "", errors.New("malformed header")
+	}
+	authTokenString = strings.TrimSpace(authTokenString)
+	if authTokenString == "" {
+		return "", errors.New("missing token string")
+	}
+	return authTokenString, nil
+}
 
 func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
 	now := time.Now().UTC()
