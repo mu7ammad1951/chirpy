@@ -43,7 +43,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 
 	refreshTokenString, err := auth.MakeRefreshToken()
 	if err != nil {
-		log.Printf("error creating Refresh Token: %v", err)
+		log.Printf("error creating refresh token: %v", err)
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -52,6 +52,11 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 		Token:  refreshTokenString,
 		UserID: user.ID,
 	})
+	if err != nil {
+		log.Printf("error adding refresh token to database: %v", err)
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	respondWithJSON(w, http.StatusOK, struct {
 		UserResponse

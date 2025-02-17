@@ -58,5 +58,49 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 }
 
 func (cfg *apiConfig) handlerUserUpdate(w http.ResponseWriter, req *http.Request) {
+	decoder := json.NewDecoder(req.Body)
+	var reqJSON UserRequest
+	if err := decoder.Decode(&reqJSON); err != nil {
+		log.Printf("error decoding request: %v\n", err)
+		respondWithError(w, http.StatusUnauthorized, "")
+		return
+	}
+	accessToken, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		log.Printf("error getting token: %v\n", err)
+		respondWithError(w, http.StatusUnauthorized, "")
+		return
+	}
+	userID, err := auth.ValidateJWT(accessToken, cfg.secretString)
+	if err != nil {
+		log.Printf("error validating JWT: %v\n", err)
+		respondWithError(w, http.StatusUnauthorized, "")
+		return
+	}
+
+	hashedPassword, err := auth.HashPassword(reqJSON.Password)
+	if err != nil {
+		log.Printf("error hashing password: %v\n", err)
+		respondWithError(w, http.StatusInternalServerError, "")
+		return
+	}
+
+	userInfo, err := cfg.dbQueries.UpdatePasswordEmail(req.Context(), database.UpdatePasswordEmailParams{
+		ID:             userID,
+		Email:          reqJSON.Email,
+		HashedPassword: hashedPassword,
+	})
+	if err != nil {
+		log.Printf("error updating password or email: %v\n", err)
+		respondWithError(w, http.StatusInternalServerError, "")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, UserResponse{
+		ID:        userInfo.ID,
+		CreatedAt: userInfo.CreatedAt,
+		UpdatedAt: userInfo.UpdatedAt,
+		Email:     userInfo.Email,
+	})
 
 }
