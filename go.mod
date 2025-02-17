@@ -1,4 +1,4 @@
-module github.com/mu7ammad1951/chirpy-boot
+module github.com/mu7ammad1951/chirpy
 
 go 1.23.6
 
