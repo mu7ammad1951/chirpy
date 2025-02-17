@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/mu7ammad1951/chirpy-boot/internal/auth"
-	"github.com/mu7ammad1951/chirpy-boot/internal/database"
+	"github.com/mu7ammad1951/chirpy/internal/auth"
+	"github.com/mu7ammad1951/chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
