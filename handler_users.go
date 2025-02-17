@@ -17,10 +17,11 @@ type UserRequest struct {
 }
 
 type UserResponse struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
+	ID          uuid.UUID `json:"id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Email       string    `json:"email"`
+	IsChirpyRed bool      `json:"is_chirpy_red"`
 }
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request) {
@@ -50,10 +51,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 	}
 
 	respondWithJSON(w, http.StatusCreated, UserResponse{
-		ID:        userData.ID,
-		CreatedAt: userData.CreatedAt,
-		UpdatedAt: userData.UpdatedAt,
-		Email:     userData.Email,
+		ID:          userData.ID,
+		CreatedAt:   userData.CreatedAt,
+		UpdatedAt:   userData.UpdatedAt,
+		Email:       userData.Email,
+		IsChirpyRed: userData.IsChirpyRed,
 	})
 }
 
@@ -97,10 +99,53 @@ func (cfg *apiConfig) handlerUserUpdate(w http.ResponseWriter, req *http.Request
 	}
 
 	respondWithJSON(w, http.StatusOK, UserResponse{
-		ID:        userInfo.ID,
-		CreatedAt: userInfo.CreatedAt,
-		UpdatedAt: userInfo.UpdatedAt,
-		Email:     userInfo.Email,
+		ID:          userInfo.ID,
+		CreatedAt:   userInfo.CreatedAt,
+		UpdatedAt:   userInfo.UpdatedAt,
+		Email:       userInfo.Email,
+		IsChirpyRed: userInfo.IsChirpyRed,
 	})
+
+}
+
+func (cfg *apiConfig) handlerUpgrade(w http.ResponseWriter, req *http.Request) {
+
+	polkaKey, err := auth.GetAPIKey(req.Header)
+	if err != nil {
+		log.Printf("error retrieving key: %v\n", err)
+		respondWithError(w, http.StatusUnauthorized, "")
+		return
+	}
+	if polkaKey != cfg.polkaApiKey {
+		log.Printf("mismatched api key: %v\n", err)
+		respondWithError(w, http.StatusUnauthorized, "")
+		return
+	}
+
+	decoder := json.NewDecoder(req.Body)
+	var reqJSON struct {
+		Event string `json:"event"`
+		Data  struct {
+			UserID uuid.UUID `json:"user_id"`
+		} `json:"data"`
+	}
+
+	if err := decoder.Decode(&reqJSON); err != nil {
+		log.Printf("error decoding request: %v\n", err)
+		respondWithError(w, http.StatusInternalServerError, "")
+		return
+	}
+
+	if reqJSON.Event != "user.upgraded" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if err := cfg.dbQueries.UpgradeUserByID(req.Context(), reqJSON.Data.UserID); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 
 }
